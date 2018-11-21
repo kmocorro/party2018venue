@@ -114,33 +114,38 @@ module.exports = function(app){
                 });
             }
 
+            /**  */
+
+
+
             venue_party_list().then(function(party_list_data){
 
                 let schedule = [];
                 let service_awardee = [];
                 let confirmation_attendance = [];
+                let current_day = moment(new Date()).format('MMMM DD, YYYY');
 
                 if(party_list_data[0].shift == 'X' || party_list_data[0].shift == 'Y'){
 
                     schedule.push({
-                        day:  'December 5, 2018'
+                        day:  'December 05, 2018'
                     });
 
                 } else {
                     
                     schedule.push({
-                        day:  'December 6, 2018'
+                        day:  'December 06, 2018'
                     });
                 }
 
                 if(party_list_data[0].awardee !== null){
 
                     let awardee_array = (party_list_data[0].awardee).split(" ");
-                    console.log(awardee_array);
+                    //console.log(awardee_array);
 
                     service_awardee.push({
                         year: awardee_array[0],
-                        batch: awardee_array[2]
+                        batch: awardee_array[2] || '1'
                     });
 
                     
@@ -173,7 +178,9 @@ module.exports = function(app){
                     });
                 }
 
-                res.render('home', { party_list_data, authenticity_token, sched: schedule[0].day, award: service_awardee[0], attendance: confirmation_attendance[0] });
+
+                res.render('home', { party_list_data, authenticity_token, sched: schedule[0].day, award: service_awardee[0], attendance: confirmation_attendance[0], current_day });
+
             },  function(err){
                 res.send({err: err});
             });
@@ -209,6 +216,162 @@ module.exports = function(app){
         res.cookie('auth', null);
         res.redirect('/');
     });
+
     
+    /** API POST SignIn */
+    app.post('/api/party', function(req, res){
+        let form = new formidable.IncomingForm();
+
+        form.parse(req, function(err, fields){
+            if(err){return res.send({err: 'Error form.'})};
+
+            if(fields){
+                
+                let credentials = {
+                    date_time: moment(new Date()).format(),
+                    fullname: fields.fullname,
+                    employeeNumber: fields.employeeNumber,
+                    title: fields.title,
+                    shift: fields.shift,
+                    department: fields.department,
+                    schedule: moment(new Date(fields.schedule)).format('MMMM DD, YYYY')
+                }
+
+                let event = {
+                    day_one: moment(new Date('December 05, 2018')).format('MMMM DD, YYYY'),
+                    day_two: moment(new Date('December 06, 2018')).format('MMMM DD, YYYY')
+                }
+
+                let current_day = moment(new Date()).format('MMMM DD, YYYY');
+
+                /** Check Employee if already registered to the event @ DAY 1 */
+                function checkUser_Day_One(){
+                    return new Promise(function(resolve, reject){
+
+                        mysql.poolParty.getConnection(function(err, connection){
+                            if(err){return reject(err)};
+
+                            connection.query({
+                                sql: 'SELECT * FROM app_venue_party_day1 WHERE employeeNumber = ?',
+                                values: [credentials.employeeNumber]
+                            },  function(err, results){
+                                if(err){return reject(err)};
+
+                                if(typeof results[0] !== 'undefined' && results[0] !== null && results.length > 0){
+                                    reject(results[0].employeeNumber + ' already registered @ DAY 1');
+                                } else {
+                                    resolve();
+                                }
+
+                            });
+
+                            connection.release();
+
+                        });
+
+                    });
+                }
+
+                /** Check Employee if already registered to the event @ DAY 2 */
+                function checkUser_Day_Two(){
+                    return new Promise(function(resolve, reject){
+
+                        mysql.poolParty.getConnection(function(err, connection){
+                            if(err){return reject(err)};
+
+                            connection.query({
+                                sql: 'SELECT * FROM app_venue_party_day2 WHERE employeeNumber = ?',
+                                values: [credentials.employeeNumber]
+                            },  function(err, results){
+                                if(err){return reject(err)};
+
+                                if(typeof results[0] !== 'undefined' && results[0] !== null && results.length > 0){
+                                    reject(results[0].employeeNumber + ' already registered @ DAY 2');
+                                } else {
+                                    resolve();
+                                }
+
+                            });
+
+                            connection.release();
+
+                        });
+
+                    });
+                }
+
+                /** if user doesn't registered yet, insert credenitals @ DAY 1 */
+                function insertUser_Day_One(){
+                    return new Promise(function(resolve, reject){
+
+                        mysql.poolParty.getConnection(function(err, connection){
+                            if(err){return reject(err)};
+
+                            connection.query({
+                                sql: 'INSERT INTO app_venue_party_day1 SET date_time= ?, fullname= ?, employeeNumber = ?, title =?, shift = ?, department =?',
+                                values: [credentials.date_time, credentials.fullname, credentials.employeeNumber, credentials.title, credentials.shift, credentials.department]
+                            },  function(err, results){
+                                if(err){return reject(err)};
+                                resolve();
+                            });
+
+                        });
+
+                    });
+                }
+
+                /** if user doesn't registered yet, insert credenitals @ DAY 2 */
+                function insertUser_Day_Two(){
+                    return new Promise(function(resolve, reject){
+
+                        mysql.poolParty.getConnection(function(err, connection){
+                            if(err){return reject(err)};
+
+                            connection.query({
+                                sql: 'INSERT INTO app_venue_party_day2 SET date_time= ?, fullname= ?, employeeNumber = ?, title =?, shift = ?, department =?',
+                                values: [credentials.date_time, credentials.fullname, credentials.employeeNumber, credentials.title, credentials.shift, credentials.department]
+                            },  function(err, results){
+                                if(err){return reject(err)};
+                                resolve();
+                            });
+
+                        });
+
+                    });
+                }
+
+
+                /** separate date registration */
+                if(credentials.schedule == event.day_one){ // day one
+
+                    checkUser_Day_One().then(function(){
+                        insertUser_Day_One().then(function(){
+                            res.send({auth: 'You have successfully joined the party!'});
+                        });
+
+                    },  function(err){
+                        res.send({err: err});
+                    });
+
+
+                } else if(credentials.schedule == event.day_two){ // day two
+
+                    checkUser_Day_Two().then(function(){
+                        insertUser_Day_Two().then(function(){
+                            res.send({auth: 'You have successfully joined the party!'});
+                        });
+
+                    },  function(err){
+                        res.send({err: err});
+                    });
+
+                }
+
+            }
+
+        });
+
+
+    });
 
 }  

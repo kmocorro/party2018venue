@@ -202,7 +202,13 @@
                 <div class="col-md-12">
                    <div class="box box-widget widget-user">
                         <!-- Add the bg color to the header using any of the bg-* classes -->
-                        <div class="widget-user-header bg-primary-active">
+                        <% if(attendance.remarks == 'Confirmed') {  %>
+                            <div class="widget-user-header bg-green-active">
+                        <% } else if(attendance.remarks == 'Declined') { %>
+                            <div class="widget-user-header bg-red-active">
+                        <% } else { %>
+                            <div class="widget-user-header bg-yellow-active">
+                        <% } %>
                         <!--
                         <div class="widget-user-image">
                             <img class="img-circle" src="../dist/img/user7-128x128.jpg" alt="User Avatar">
@@ -211,41 +217,58 @@
                         <!-- /.widget-user-image -->
                         <h3 class="widget-user-username"><%= party_list_data[0].fullname %></h3>
                         <h5 class="widget-user-desc"><%= party_list_data[0].title %></h5>
-                        <% if(award.year !== '') { %>
-                            <% if(award.year == 5) { %>
-                                <h5 class="widget-user-desc text-muted"><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span> Batch <%= award.batch %></h5>
-                            <% } else if(award.year == 10) { %>
-                                <h5 class="widget-user-desc text-muted"><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span>&nbsp;&nbsp;&nbsp;<span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span> Batch <%= award.batch %></h5>
-                            <% } else if(award.year == 15) { %>
-                                <h5 class="widget-user-desc text-muted"><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span>&nbsp;&nbsp;&nbsp;<span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span>&nbsp;&nbsp;&nbsp;<span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span><span class="fa fa-star text-yellow"></span> Batch <%= award.batch %></h5>
-                            <% } %>
-                        <% } %>
                         </div>
                         <div class="box-footer no-padding">
                         <ul class="nav nav-stacked">
                             <li><a href="#">Employee ID <span class="pull-right text-muted"><%= party_list_data[0].employeeNumber %></span></a></li>
                             <li><a href="#">Shift <span class="pull-right text-muted"><%= party_list_data[0].shift %></span></a></li>
                             <li><a href="#">Supervisor <span class="pull-right text-muted"><%= party_list_data[0].supervisor %></span></a></li>
-                            <li><a href="#">Department <span class="pull-right text-muted"><%= party_list_data[0].department %></span></a></li>
-                            <li><a href="#">Scheduled 
+                            <li><a href="#">Pre-registration 
                                 <% if(attendance.remarks == 'Not Registered') { %>
-                                    <span class="label label-danger pull-right"><%= attendance.remarks %></span>
+                                    <span class="pull-right text-muted"> <%= sched %> </span><span class="ion ion-flag text-yellow"></span>
                                 <% } else if(attendance.remarks == 'Declined') { %>
-                                    <span class="label label-warning pull-right"><%= attendance.remarks %></span>
+                                    <span class="pull-right text-muted"> <%= sched %> </span><span class="ion ion-close-circled text-red"></span>
                                 <% } else { %>
-                                    <span class="label label-success pull-right"><%= attendance.remarks %></span>
+                                    <span class="pull-right text-muted"> <%= sched %> </span><span class="ion ion-checkmark-circled text-green"></span>
                                 <% } %>
-                                <span class="pull-right text-muted"> <%= sched %> </span>
+                                
                             </a></li>
+                            
+                            <% if(award.year !== '') { %>
+                                <li><a href="#"><span class="fa fa-star text-yellow"></span> Congratulations! You are a <%= award.year %> Year Service Awardee! Note that you are Batch <%= award.batch %>.</a></li>
+                            <% } %>
                         </ul>
                         </div>
                         <div class="box-footer">
-                            <div class="signup-sub-link">
-                                <div id="aftersub">
-                                    By entering the event, you indicate that you have read and agree to SunPower 2018 Year-End Party Guidelines.
-                                </div>
+                            <div id='responseDiv'>
+                                <!-- response here-->
                             </div>
-                            <button type="submit" id="confirmbutton" class="btn btn-warning btn-block">Enter Event</button>
+                            <form id="userSignIn">
+                                <div id="toHideIfSuccess">
+                                    <% if(attendance.remarks == 'Confirmed') {  %>
+                                        <% if(sched == current_day) { %>
+                                        <input type="hidden" required name="fullname" value="<%= party_list_data[0].fullname %>">
+                                        <input type="hidden" required name="employeeNumber" value="<%= party_list_data[0].employeeNumber %>">
+                                        <input type="hidden" required name="title" value="<%= party_list_data[0].title %>">
+                                        <input type="hidden" required name="shift" value="<%= party_list_data[0].shift %>">
+                                        <input type="hidden" required name="department" value="<%= party_list_data[0].department %>">
+                                        <input type="hidden" required name="schedule" value="<%= sched %>">
+                                        <div class="signup-sub-link">
+                                            <div id="aftersub">
+                                                By entering the event, you indicate that you have read and agree to SunPower 2018 Year-End Party Guidelines.
+                                            </div>
+                                        </div>
+                                        <button type="submit" id="confirmbutton" class="btn btn-success btn-block">Enter Event</button>
+                                        <% } else { %>
+                                            <button type="submit" disabled id="confirmbutton" class="btn btn-danger btn-block">You are not scheduled to join the event.</button>
+                                        <% } %>
+                                    <% } else if(attendance.remarks == 'Declined') { %>
+                                        <button type="submit" disabled id="confirmbutton" class="btn btn-danger btn-block">Employee declined the event.</button>
+                                    <% } else { %>
+                                        <button type="submit" disabled id="confirmbutton" class="btn btn-warning btn-block">Employee did not register to the event.</button>
+                                    <% } %>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -293,7 +316,7 @@
 <script>
     window.addEventListener('load', function(){
 
-        function goWillAttend(){
+        function goSignIn(){
 
             let xhr = new XMLHttpRequest();
             let fd = new FormData(form); // bind form data object and form element
@@ -307,8 +330,7 @@
                     
                     if(resFromServer.err){
                         document.getElementById('aftersub').style.display="block";
-                        document.getElementById('incoming_id').removeAttribute("disabled");
-                        document.getElementById('outgoing_id').removeAttribute("disabled");
+                        document.getElementById('confirmbutton').removeAttribute("disabled");
 
                         if (responseDiv.classList) { 
                             responseDiv.classList.add("responseDivErr");
@@ -334,9 +356,9 @@
                             responseDiv.innerHTML = resFromServer.auth;
 
                             setTimeout(function(){
-                                window.location.href="/";
+                                window.location.href="/logout";
 
-                            }, 1000);
+                            }, 1500);
 
                         } else {
                             // For IE9
@@ -352,8 +374,8 @@
                                 
 
                                 setTimeout(function(){
-                                    window.location.href="/";
-                                }, 1000);
+                                    window.location.href="/logout";
+                                }, 1500);
                             }
                         }
                     }
@@ -374,15 +396,14 @@
         }
 
         // access FORM element
-        let form = document.getElementById('willAttend');
+        let form = document.getElementById('userSignIn');
         // take over submit event
         form.addEventListener('submit', function(event){
             event.preventDefault();
             document.getElementById('responseDiv').style.display="none";
             document.getElementById('aftersub').style.display="none";
-            goWillAttend();
-            document.getElementById('incoming_id').setAttribute("disabled", "disabled");
-            document.getElementById('outgoing_id').setAttribute("disabled", "disabled");
+            goSignIn();
+            document.getElementById('confirmbutton').setAttribute("disabled", "disabled");
         });
 
     });
