@@ -247,18 +247,24 @@
                                 <div id="toHideIfSuccess">
                                     <% if(attendance.remarks == 'Confirmed') {  %>
                                         <% if(sched == current_day) { %>
-                                        <input type="hidden" required name="fullname" value="<%= party_list_data[0].fullname %>">
-                                        <input type="hidden" required name="employeeNumber" value="<%= party_list_data[0].employeeNumber %>">
-                                        <input type="hidden" required name="title" value="<%= party_list_data[0].title %>">
-                                        <input type="hidden" required name="shift" value="<%= party_list_data[0].shift %>">
-                                        <input type="hidden" required name="department" value="<%= party_list_data[0].department %>">
-                                        <input type="hidden" required name="schedule" value="<%= sched %>">
-                                        <div class="signup-sub-link">
-                                            <div id="aftersub">
-                                                By entering the event, you indicate that you have read and agree to SunPower 2018 Year-End Party Guidelines.
-                                            </div>
-                                        </div>
-                                        <button type="submit" id="confirmbutton" class="btn btn-success btn-block">Enter Event</button>
+                                            <% if(enter_event_button[0].stat == 'enabled') { %>
+                                                <input type="hidden" required name="fullname" value="<%= party_list_data[0].fullname %>">
+                                                <input type="hidden" required name="employeeNumber" value="<%= party_list_data[0].employeeNumber %>">
+                                                <input type="hidden" required name="title" value="<%= party_list_data[0].title %>">
+                                                <input type="hidden" required name="shift" value="<%= party_list_data[0].shift %>">
+                                                <input type="hidden" required name="department" value="<%= party_list_data[0].department %>">
+                                                <input type="hidden" required name="schedule" value="<%= sched %>">
+                                                <div class="signup-sub-link">
+                                                    <div id="aftersub">
+                                                        By entering the event, you indicate that you have read and agree to SunPower 2018 Year-End Party Guidelines.
+                                                    </div>
+                                                </div>
+                                                <button type="submit" id="confirmbutton" class="btn btn-success btn-block">Enter Event</button>
+                                            <% } else { %>
+
+                                                <button type="submit" id="confirmbutton" disabled class="btn btn-success btn-block">Already registered.</button>
+
+                                            <% } %>
                                         <% } else { %>
                                             <button type="submit" disabled id="confirmbutton" class="btn btn-danger btn-block">You are not scheduled to join the event.</button>
                                         <% } %>
