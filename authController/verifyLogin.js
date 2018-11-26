@@ -15,6 +15,8 @@ module.exports = function(app){
             if(fields){
                 let form_login_details = fields;
 
+                console.log(fields);
+
                 if(form_login_details.employeeNumber){
                 
                     function checkEmployeeNumber(){
