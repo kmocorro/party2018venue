@@ -9,13 +9,14 @@ module.exports = function(app){
     app.post('/api/login', function(req, res){
         let form = new formidable.IncomingForm();
 
+        //console.log(form);
         form.parse(req, function(err, fields){
             if(err){return res.send({err: 'Form parse error.'})};
 
             if(fields){
                 let form_login_details = fields;
 
-                console.log(fields);
+                //console.log(fields);
 
                 if(form_login_details.employeeNumber){
                 

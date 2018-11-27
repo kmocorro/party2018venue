@@ -15,6 +15,9 @@ let QRcode = require('qrcode');
 
 let uuidv4 = require('uuid/v4');
 
+let fs = require('fs');
+let path = require('path');
+
 module.exports = function(app){
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({extended: true}));
@@ -70,9 +73,12 @@ module.exports = function(app){
                                     id: results[0].id
                                 });
                              
+                                resolve(party_list_data);
+
+                            } else {
+                                reject('Employee Number is not on the party list.');
                             }
 
-                            resolve(party_list_data);
                             
                         });
 
@@ -87,7 +93,7 @@ module.exports = function(app){
                 let schedule = [];
                 let service_awardee = [];
                 let confirmation_attendance = [];
-                let current_day = moment(new Date()).format('MMMM DD, YYYY');
+                let current_day = moment(new Date('December 06, 2018')).format('MMMM DD, YYYY');
 
                 /** validate if user already registered on the venue
                  *  resolve(enter_event_button) return 'enabled' or 'disabled'
@@ -299,6 +305,12 @@ module.exports = function(app){
 
                 validate_user_entry().then(function(enter_event_button){
 
+                    let stream = fs.createWriteStream('manual_login.csv',{flags: 'a'});
+
+                    stream.write(moment(new Date()).format() + ',manual_login,' + party_list_data[0].fullname + "\n");
+
+                    stream.end();
+
                     res.render('home', { party_list_data, authenticity_token, sched: schedule[0].day, award: service_awardee[0], attendance: confirmation_attendance[0], current_day, enter_event_button });
 
                 },  function(err){
@@ -315,7 +327,6 @@ module.exports = function(app){
 
     });
 
-
     /** GET API for user LOGIN PAGE */
     app.get('/login', function(req, res){
 
@@ -325,6 +336,18 @@ module.exports = function(app){
                 signup: 'valid'
             }
         }, config.secret, { expiresIn: 300 });
+        /*
+        mysql.poolParty.getConnection(function(err, connection){
+            if(err){throw err}
+            connection.query({
+                sql: 'SELECT * FROM app_venue_party_list WHERE employeeNumber = 39239'
+            },  function(err, results){
+                if(err){throw err};
+                console.log(results);
+            });
+            connection.release();
+        });
+        */
 
         res.render('login', {authenticity_token});
     });
@@ -333,6 +356,7 @@ module.exports = function(app){
     app.get('/qrcode', function(req, res){
 
         let credentials = {
+            date_time: moment(new Date()).format(),
             employeeNumber: req.query.employeeNumber
         }
 
@@ -377,10 +401,14 @@ module.exports = function(app){
                                     hiredate: results[0].hiredate,
                                     id: results[0].id
                                 });
+
+                                resolve(party_list_data);
                              
+                            } else {
+                                reject('Employee Number is not on the party list.');
                             }
 
-                            resolve(party_list_data);
+                            
                             
                         });
 
@@ -396,7 +424,74 @@ module.exports = function(app){
                 let schedule = [];
                 let service_awardee = [];
                 let confirmation_attendance = [];
-                let current_day = moment(new Date()).format('MMMM DD, YYYY');
+                let current_day = moment(new Date('December 06, 2018')).format('MMMM DD, YYYY');
+
+                /** validate if user already registered on the venue
+                 *  resolve(enter_event_button) return 'enabled' or 'disabled'
+                 */
+                function validate_user_entry(){
+                    return new Promise(function(resolve, reject){
+
+                        mysql.poolParty.getConnection(function(err, connection){
+                            if(err){return reject(err)};
+
+                            connection.query({
+                                sql: 'SELECT * FROM app_venue_party_day1 WHERE employeeNumber = ?',
+                                values: [party_list_data[0].employeeNumber]
+                            },  function(err, results){
+                                if(err){return reject(err)};
+
+                                let enter_event_button = [];
+
+                                if(typeof results[0] !== 'undefined' && results[0] !== null && results.length > 0){
+
+                                    enter_event_button.push({
+                                        stat: 'disabled' // user already exists.
+                                    })
+
+                                    resolve(enter_event_button);
+
+                                } else {
+
+                                    //** validate day2 */
+                                    connection.query({
+                                        sql: 'SELECT * FROM app_venue_party_day2 WHERE employeeNumber = ?',
+                                        values: [party_list_data[0].employeeNumber]
+                                    },  function(err, results){
+                                        if(err){return reject(err)};
+
+                                        if(typeof results[0] !== 'undefined' && results[0] !== null && results.length > 0){
+
+                                            enter_event_button.push({
+                                                stat: 'disabled' // user already exists.
+                                            })
+                                            
+                                            resolve(enter_event_button);
+                                            //console.log(enter_event_button);
+
+                                        } else {
+
+                                            enter_event_button.push({
+                                                stat: 'enabled' // not yet
+                                            })
+        
+                                            resolve(enter_event_button);
+                                        }
+
+                                    });
+
+                                }
+
+
+                            });
+
+                            connection.release();
+
+                        });
+
+
+                    });
+                }
 
                 if(party_list_data[0].shift == 'X' || party_list_data[0].shift == 'Y'){
 
@@ -451,9 +546,20 @@ module.exports = function(app){
                     });
                 }
 
+                validate_user_entry().then(function(enter_event_button){
 
-                res.render('home', { party_list_data, authenticity_token, sched: schedule[0].day, award: service_awardee[0], attendance: confirmation_attendance[0], current_day });
+                    let stream = fs.createWriteStream('qrlogs.csv',{flags: 'a'});
 
+                    stream.write(moment(new Date()).format() + ',qrcode_scanned,' + party_list_data[0].fullname + "\n");
+
+                    stream.end();
+
+                    res.render('home', { party_list_data, authenticity_token, sched: schedule[0].day, award: service_awardee[0], attendance: confirmation_attendance[0], current_day, enter_event_button });
+                },  function(err){
+                    res.send({err: 'Error validating user entry.' + err});
+                });
+
+                
             },  function(err){
                 res.send({err: err});
             });
@@ -488,6 +594,8 @@ module.exports = function(app){
                     department: fields.department,
                     schedule: moment(new Date(fields.schedule)).format('MMMM DD, YYYY')
                 }
+
+                
 
                 let event = {
                     day_one: moment(new Date('December 05, 2018')).format('MMMM DD, YYYY'),
@@ -626,4 +734,94 @@ module.exports = function(app){
 
     });
 
+    /** EVENT RAFFLE DRAW */
+    app.get('/raffle',  function(req, res){
+        let event_day = req.query.day
+
+        function raffle_list_day1(){
+            return new Promise(function(resolve, reject){
+                mysql.poolParty.getConnection(function(err, connection){
+
+                    connection.query({
+                        sql: 'SELECT * FROM app_venue_party_day1 ORDER BY id DESC'
+                    },  function(err, results){
+                        if(err){reject (err)};
+
+                        let raffle_list_draw = [];
+
+                        for(let i=0; i<results.length;i++){
+                            if(typeof results[i] !== 'undefined' && results[i] !== null && results.length > 0){
+                                raffle_list_draw.push({
+                                    date_time: results[i].date_time,
+                                    employeeNumber: results[i].employeeNumber,
+                                    fullname: results[i].fullname
+                                });
+                            }
+                        }
+
+                        resolve(raffle_list_draw);
+
+                    });
+
+                    connection.release();
+    
+    
+                });
+
+            });
+        }
+
+        function raffle_list_day2(){
+            return new Promise(function(resolve, reject){
+                mysql.poolParty.getConnection(function(err, connection){
+
+                    connection.query({
+                        sql: 'SELECT * FROM app_venue_party_day2 ORDER BY id DESC'
+                    },  function(err, results){
+                        if(err){reject (err)};
+
+                        let raffle_list_draw = [];
+
+                        for(let i=0; i<results.length;i++){
+                            if(typeof results[i] !== 'undefined' && results[i] !== null && results.length > 0){
+                                raffle_list_draw.push({
+                                    id: results[i].id,
+                                    date_time: moment(results[i].date_time).format('lll'),
+                                    employeeNumber: results[i].employeeNumber,
+                                    fullname: results[i].fullname,
+                                    department: results[i].department
+                                });
+                            }
+                        }
+
+                        resolve(raffle_list_draw);
+
+                    });
+
+                    connection.release();
+    
+    
+                });
+
+            });
+        }
+
+        if(event_day == '1'){
+            
+            raffle_list_day1().then(function(raffle_list_draw){
+                
+                res.render('raffle', {raffle_list_draw, event_day});
+            }); 
+
+        } else if(event_day == '2'){
+
+            raffle_list_day2().then(function(raffle_list_draw){
+                res.render('raffle', {raffle_list_draw, event_day});
+            });
+
+        } else {
+            res.send({err: 'Hey wrong day.'});
+        }
+
+    });
 }  
