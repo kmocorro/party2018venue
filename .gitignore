@@ -3,3 +3,5 @@ node_modules/
 public/
 manual_login.csv
 qrlogs.csv
+public.tar.gz
+config.tar.gz

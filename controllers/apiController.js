@@ -252,7 +252,7 @@ module.exports = function(app){
                 }
 
 
-                console.log(current_day);
+                //console.log(current_day);
 
                 if(party_list_data[0].shift == 'X' || party_list_data[0].shift == 'Y'){
 
