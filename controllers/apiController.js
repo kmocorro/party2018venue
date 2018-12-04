@@ -18,6 +18,8 @@ let uuidv4 = require('uuid/v4');
 let fs = require('fs');
 let path = require('path');
 
+let day_test = require('../config').day_test;
+
 module.exports = function(app){
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({extended: true}));
@@ -93,7 +95,7 @@ module.exports = function(app){
                 let schedule = [];
                 let service_awardee = [];
                 let confirmation_attendance = [];
-                let current_day = moment(new Date('December 06, 2018')).format('MMMM DD, YYYY');
+                let current_day = moment(day_test.value).format('MMMM DD, YYYY');
 
                 /** validate if user already registered on the venue
                  *  resolve(enter_event_button) return 'enabled' or 'disabled'
@@ -250,6 +252,8 @@ module.exports = function(app){
                 }
 
 
+                console.log(current_day);
+
                 if(party_list_data[0].shift == 'X' || party_list_data[0].shift == 'Y'){
 
                     schedule.push({
@@ -352,6 +356,12 @@ module.exports = function(app){
         res.render('login', {authenticity_token});
     });
 
+    /** GET API for user LOGOUT PAGE */
+    app.get('/logout', function(req, res){
+        res.cookie('auth', null);
+        res.redirect('/');
+    });
+
     /** GET API QR CODE query no need to verifyToken */
     app.get('/qrcode', function(req, res){
 
@@ -424,7 +434,7 @@ module.exports = function(app){
                 let schedule = [];
                 let service_awardee = [];
                 let confirmation_attendance = [];
-                let current_day = moment(new Date('December 06, 2018')).format('MMMM DD, YYYY');
+                let current_day = moment(day_test.value).format('MMMM DD, YYYY');
 
                 /** validate if user already registered on the venue
                  *  resolve(enter_event_button) return 'enabled' or 'disabled'
@@ -548,11 +558,13 @@ module.exports = function(app){
 
                 validate_user_entry().then(function(enter_event_button){
 
+                    /*
                     let stream = fs.createWriteStream('qrlogs.csv',{flags: 'a'});
 
                     stream.write(moment(new Date()).format() + ',qrcode_scanned,' + party_list_data[0].fullname + "\n");
 
                     stream.end();
+                    */
 
                     res.render('home', { party_list_data, authenticity_token, sched: schedule[0].day, award: service_awardee[0], attendance: confirmation_attendance[0], current_day, enter_event_button });
                 },  function(err){
@@ -568,12 +580,6 @@ module.exports = function(app){
             res.send({err: 'No employee number.'});
         }
 
-    });
-
-    /** GET API for user LOGOUT PAGE */
-    app.get('/logout', function(req, res){
-        res.cookie('auth', null);
-        res.redirect('/');
     });
 
     /** API POST SignIn */
@@ -602,7 +608,7 @@ module.exports = function(app){
                     day_two: moment(new Date('December 06, 2018')).format('MMMM DD, YYYY')
                 }
 
-                let current_day = moment(new Date()).format('MMMM DD, YYYY');
+                let current_day = moment(day_test.value).format('MMMM DD, YYYY');
 
                 /** Check Employee if already registered to the event @ DAY 1 */
                 function checkUser_Day_One(){
@@ -673,6 +679,11 @@ module.exports = function(app){
                             },  function(err, results){
                                 if(err){return reject(err)};
                                 resolve();
+
+                                let stream = fs.createWriteStream('./public/backup1.csv',{flags: 'a'});
+                                stream.write(credentials.date_time + ',day1,' + credentials.employeeNumber + ',' + credentials.fullname + "\n");
+                                stream.end();
+
                             });
 
                         });
@@ -693,6 +704,11 @@ module.exports = function(app){
                             },  function(err, results){
                                 if(err){return reject(err)};
                                 resolve();
+
+                                let stream = fs.createWriteStream('./public/backup2.csv',{flags: 'a'});
+                                stream.write(credentials.date_time + ',day2,' + credentials.employeeNumber + ',' + credentials.fullname + "\n");
+                                stream.end();
+
                             });
 
                         });
@@ -741,6 +757,7 @@ module.exports = function(app){
         function raffle_list_day1(){
             return new Promise(function(resolve, reject){
                 mysql.poolParty.getConnection(function(err, connection){
+                    if(err){reject(err)};
 
                     connection.query({
                         sql: 'SELECT * FROM app_venue_party_day1 ORDER BY id DESC'
@@ -752,9 +769,11 @@ module.exports = function(app){
                         for(let i=0; i<results.length;i++){
                             if(typeof results[i] !== 'undefined' && results[i] !== null && results.length > 0){
                                 raffle_list_draw.push({
-                                    date_time: results[i].date_time,
+                                    id: results[i].id,
+                                    date_time: moment(results[i].date_time).format('lll'),
                                     employeeNumber: results[i].employeeNumber,
-                                    fullname: results[i].fullname
+                                    fullname: results[i].fullname,
+                                    department: results[i].department
                                 });
                             }
                         }
@@ -774,6 +793,7 @@ module.exports = function(app){
         function raffle_list_day2(){
             return new Promise(function(resolve, reject){
                 mysql.poolParty.getConnection(function(err, connection){
+                    if(err){reject(err)};
 
                     connection.query({
                         sql: 'SELECT * FROM app_venue_party_day2 ORDER BY id DESC'
@@ -811,17 +831,47 @@ module.exports = function(app){
             raffle_list_day1().then(function(raffle_list_draw){
                 
                 res.render('raffle', {raffle_list_draw, event_day});
+            },  function(err){
+                res.send({err: 'Restarting server...' + err});
             }); 
 
         } else if(event_day == '2'){
 
             raffle_list_day2().then(function(raffle_list_draw){
                 res.render('raffle', {raffle_list_draw, event_day});
+            },  function(err){
+                res.send({err: 'Restarting server...' + err});
             });
 
         } else {
             res.send({err: 'Hey wrong day.'});
         }
 
+    });
+
+    /** secret */
+    app.get('/data', function(req, res){
+        let request_day = req.query.day;
+
+        if(request_day == 1){
+
+            let backup_details = {
+                path: './public/',
+                file: 'backup1.csv'
+            }
+
+            res.download(backup_details.path + backup_details.file);
+
+        } else {
+            
+            let backup_details = {
+                path: './public/',
+                file: 'backup2.csv'
+            }
+
+            res.download(backup_details.path + backup_details.file);
+
+        }
+    
     });
 }  

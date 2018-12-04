@@ -211,6 +211,9 @@
                         </div>
                         <div class="box-footer no-padding">
                         <ul class="nav nav-stacked">
+                            <% if(award.year !== '') { %>
+                                <li class="bg-aqua-active"><a href="#"><span class="fa fa-star text-yellow"></span> <span class="fa fa-star text-yellow"></span> <span class="fa fa-star text-yellow"></span><span style="color:beige">Congratulations! You are a <%= award.year %> Year Service Awardee! Note that you are Batch <%= award.batch %>.</span></a></li>
+                            <% } %>
                             <li><a href="#">Employee ID <span class="pull-right text-muted"><%= party_list_data[0].employeeNumber %></span></a></li>
                             <li><a href="#">Shift <span class="pull-right text-muted"><%= party_list_data[0].shift %></span></a></li>
                             <li><a href="#">Supervisor <span class="pull-right text-muted"><%= party_list_data[0].supervisor %></span></a></li>
@@ -224,10 +227,6 @@
                                 <% } %>
                                 
                             </a></li>
-                            
-                            <% if(award.year !== '') { %>
-                                <li><a href="#"><span class="fa fa-star text-yellow"></span> Congratulations! You are a <%= award.year %> Year Service Awardee! Note that you are Batch <%= award.batch %>.</a></li>
-                            <% } %>
                         </ul>
                         </div>
                         <div class="box-footer">
@@ -250,7 +249,7 @@
                                                         By entering the event, you indicate that you have read and agree to SunPower 2018 Year-End Party Guidelines.
                                                     </div>
                                                 </div>
-                                                <button type="submit" id="confirmbutton" class="btn btn-success btn-block">Enter Event</button>
+                                                <button type="submit" id="confirmbutton" class="btn btn-success btn-block btn-lg">Enter Event</button>
                                             <% } else { %>
 
                                                 <button type="submit" id="confirmbutton" disabled class="btn btn-success btn-block">Already registered.</button>
